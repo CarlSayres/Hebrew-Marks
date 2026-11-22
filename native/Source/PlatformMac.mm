@@ -69,7 +69,7 @@ public:
         panel=[[HebrewMarksPanel alloc] initWithContentRect:NSMakeRect(0,0,c.getWidth(),c.getHeight())
             styleMask:NSWindowStyleMaskBorderless|NSWindowStyleMaskNonactivatingPanel
             backing:NSBackingStoreBuffered defer:NO];
-        [panel setTitle:@"Hebrew Marks"];
+        [panel setTitle:[NSString stringWithUTF8String:c.getName().toRawUTF8()]];
         [panel setReleasedWhenClosed:NO];
         [panel setBecomesKeyOnlyIfNeeded:YES];
         [panel setHidesOnDeactivate:NO];

@@ -1,4 +1,4 @@
-name: Native Windows and Mac builds
+name: Hebrew Marks builds
 
 on:
   workflow_dispatch:

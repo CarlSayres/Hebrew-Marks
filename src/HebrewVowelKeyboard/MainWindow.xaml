@@ -82,7 +82,8 @@
    <Border Background="#172F40" Padding="12,9,10,9" MouseLeftButtonDown="DragHeader">
     <Grid>
      <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-     <TextBlock Text="Niqqud &amp; Te’amim" Foreground="White" FontSize="18" IsHitTestVisible="False" />
+     <TextBlock Text="{Binding Title, RelativeSource={RelativeSource AncestorType=Window}}"
+      Foreground="White" FontSize="18" IsHitTestVisible="False" />
      <TextBlock Grid.Row="1" x:Name="ShortcutText" Text="Ctrl-Alt-H to show or hide" Foreground="#B2DBD2" FontSize="10"
       Margin="0,8,133,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" IsHitTestVisible="False" AutomationProperties.LiveSetting="Polite" />
      <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,8,0,0">

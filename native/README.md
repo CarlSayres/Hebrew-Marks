@@ -34,7 +34,7 @@ ctest --test-dir native/build --output-on-failure
 
 `.github/workflows/native-build.yml` builds Windows x64 and a universal Mac app
 (Apple Silicon + Intel) on relevant pushes to `main`, pull requests, or a manual
-**Actions > Native Windows and Mac builds > Run workflow** request.
+**Actions > Hebrew Marks builds > Run workflow** request.
 
 Each successful job uploads a ZIP and checksum as a downloadable Actions artifact,
 retained for 30 days. The Mac job checks both architectures and ad-hoc signs the

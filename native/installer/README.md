@@ -20,7 +20,7 @@ your locally built package, run this from the repository root in PowerShell as
 administrator:
 
 ```powershell
-$testPackage = './artifacts/windows-msix/HebrewMarks-0.2.1-x64-signed-local-test'
+$testPackage = './artifacts/windows-msix/HebrewMarks-1.0-x64-signed-local-test'
 Import-Certificate -FilePath "$testPackage.cer" -CertStoreLocation 'Cert:\LocalMachine\TrustedPeople'
 Add-AppxPackage -Path "$testPackage.msix"
 ```

@@ -17,6 +17,6 @@ if ($Integration) {
     if ($LASTEXITCODE -ne 0) { throw 'Interactive tests failed.' }
 }
 
-dotnet publish src\HebrewVowelKeyboard\HebrewVowelKeyboard.csproj -c Release --no-restore --self-contained false -o artifacts\HebrewMarks
+dotnet publish src\HebrewVowelKeyboard\HebrewVowelKeyboard.csproj -c Release --no-restore --self-contained false -o artifacts\HebrewMarks-WPF
 if ($LASTEXITCODE -ne 0) { throw 'Publish failed.' }
-Write-Host 'Ready: artifacts\HebrewMarks\HebrewVowelKeyboard.exe'
+Write-Host 'Ready: artifacts\HebrewMarks-WPF\Hebrew Marks.exe'

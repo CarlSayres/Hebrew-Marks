@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.24)
-project(HebrewMarks VERSION 0.2.1 LANGUAGES C CXX)
+project(HebrewMarks VERSION 1.0 LANGUAGES C CXX)
+set(HEBREW_MARKS_PRODUCT_NAME "Hebrew Marks")
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -20,8 +21,8 @@ FetchContent_Declare(JUCE
 FetchContent_MakeAvailable(JUCE)
 
 juce_add_gui_app(HebrewMarks
-    PRODUCT_NAME "Hebrew Marks"
-    COMPANY_NAME "Hebrew Marks"
+    PRODUCT_NAME "${HEBREW_MARKS_PRODUCT_NAME}"
+    COMPANY_NAME "${HEBREW_MARKS_PRODUCT_NAME}"
     BUNDLE_ID "org.hebrewmarks.palette"
     NEEDS_WEB_BROWSER FALSE
     NEEDS_CURL FALSE
@@ -38,6 +39,8 @@ else()
     message(FATAL_ERROR "Hebrew Marks supports Windows and macOS.")
 endif()
 target_compile_definitions(HebrewMarks PRIVATE
+    HEBREW_MARKS_PRODUCT_NAME="${HEBREW_MARKS_PRODUCT_NAME}"
+    HEBREW_MARKS_VERSION="${PROJECT_VERSION}"
     JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 JUCE_MODAL_LOOPS_PERMITTED=0)
 target_link_libraries(HebrewMarks PRIVATE juce::juce_gui_basics
     juce::juce_recommended_config_flags juce::juce_recommended_lto_flags)

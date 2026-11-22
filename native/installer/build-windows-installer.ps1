@@ -24,7 +24,7 @@ if (-not (Test-Path -LiteralPath $CompilerPath -PathType Leaf)) {
     throw 'Inno Setup 6 is required. Install it or supply -CompilerPath. GitHub Windows runners already include it.'
 }
 $version = (Get-Item -LiteralPath (Join-Path $sourcePath 'Hebrew Marks.exe')).VersionInfo.FileVersion
-if ($version -notmatch '^\d+\.\d+\.\d+(\.\d+)?$') { throw "Invalid application version: $version" }
+if ($version -notmatch '^\d+\.\d+(\.\d+){0,2}$') { throw "Invalid application version: $version" }
 $compilerArgs = @('/Qp', "/DSourceDir=$sourcePath", "/DOutputDir=$outputPath", "/DAppVersion=$version")
 if ($SigningToolCommand) {
     if (-not $SigningToolCommand.Contains('$f')) { throw 'SigningToolCommand must include the Inno Setup $f file placeholder.' }

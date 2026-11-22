@@ -3,8 +3,8 @@
 class HebrewMarksApplication final : public juce::JUCEApplication
 {
 public:
-    const juce::String getApplicationName() override { return "Hebrew Marks"; }
-    const juce::String getApplicationVersion() override { return "0.2.1"; }
+    const juce::String getApplicationName() override { return HEBREW_MARKS_PRODUCT_NAME; }
+    const juce::String getApplicationVersion() override { return HEBREW_MARKS_VERSION; }
     bool moreThanOneInstanceAllowed() override { return false; }
     void initialise(const juce::String& commandLine) override
     {

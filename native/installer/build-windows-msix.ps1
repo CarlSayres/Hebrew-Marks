@@ -32,10 +32,11 @@ if (-not $MakeAppxPath -or -not (Test-Path -LiteralPath $MakeAppxPath -PathType 
 }
 
 $version = (Get-Item -LiteralPath $exe).VersionInfo.FileVersion
-if ($version -notmatch '^(\d+\.\d+\.\d+)(?:\.\d+)?$') { throw "Invalid application version: $version" }
+if ($version -notmatch '^(\d+\.\d+(?:\.\d+)?)(?:\.\d+)?$') { throw "Invalid application version: $version" }
 $version = $Matches[1]
+$numericVersion = [version]$version
 [xml]$manifest = Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot 'AppxManifest.xml')
-$manifest.Package.Identity.Version = "$version.0"
+$manifest.Package.Identity.Version = "$($numericVersion.Major).$($numericVersion.Minor).$([Math]::Max(0, $numericVersion.Build)).0"
 $localTest = $PSCmdlet.ParameterSetName -eq 'LocalTest'
 
 if ($localTest) {

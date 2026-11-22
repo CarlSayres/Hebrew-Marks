@@ -37,7 +37,7 @@ public:
 
 Palette::Palette(bool presentWindow) : platform(makePlatform())
 {
-    setName("Hebrew Marks");
+    setName(HEBREW_MARKS_PRODUCT_NAME);
     setOpaque(true);
     setWantsKeyboardFocus(false);
     setMouseClickGrabsKeyboardFocus(false);
@@ -127,7 +127,7 @@ void Palette::paint(juce::Graphics& g)
     g.fillRect(0,0,getWidth(),headerHeight);
     g.setColour(juce::Colours::white);
     g.setFont(juce::Font(juce::FontOptions(18.0f)));
-    g.drawText(juce::String::fromUTF8("Niqqud & Te’amim"),12,7,getWidth()-54,27,juce::Justification::centredLeft);
+    g.drawText(getName(),12,7,getWidth()-54,27,juce::Justification::centredLeft);
     const bool showingNotice = juce::Time::getMillisecondCounterHiRes() < noticeUntil;
     g.setColour(showingNotice ? amber : juce::Colour(0xffb2dbd2));
     g.setFont(juce::Font(juce::FontOptions(10.0f)));

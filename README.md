@@ -1,14 +1,17 @@
-# Hebrew Marks for Windows
+# Hebrew Marks
 
-The new **C++ / JUCE Windows and Mac edition** is in [`native/`](native/README.md),
-with a GitHub Actions workflow for native Windows and universal Mac test builds.
-The instructions below describe the existing, separately maintained WPF version.
+A floating keyboard for adding Hebrew vowels (niqqud) and cantillation marks (te'amim)
+to text in Word, Google Docs, and other editors.
 
-A floating, non-activating keyboard for inserting Hebrew niqqud and te'amim into the active editor. Built with C# / WPF on .NET 10. No third-party packages, cloud services, clipboard replacement, or administrator access are needed.
+The [native app](native/README.md) runs on Windows and macOS. See the
+[Windows installers](native/installer/README.md) for MSIX and standalone setup.
 
-## Run
+## Original Windows WPF build
 
-Open `artifacts/HebrewMarks/HebrewVowelKeyboard.exe` after building. Keep the accompanying DLL, runtime configuration, and dependency files beside the executable. The app requires the .NET 10 **Desktop Runtime**; it is already installed on this development machine. This build is framework-dependent, not a self-contained installer.
+The instructions below apply to the original WPF build. Open
+`artifacts/HebrewMarks-WPF/Hebrew Marks.exe` after building. Keep the accompanying
+DLL, runtime configuration, and dependency files beside the executable. This
+build requires the .NET 10 **Desktop Runtime**.
 
 1. Open a document in Word or Google Docs and type a Hebrew consonant.
 2. Leave the insertion point immediately after that consonant (and any existing marks), in logical text order.
@@ -29,7 +32,7 @@ The button **Mapach** is Unicode MAHAPAKH (U+05A4). **Zarqa** uses U+05AE (Unico
 
 Drag the dark header to move the palette. **Ctrl+Alt+H** hides or shows it. The shortcut is optional: if another program owns it, the app displays a notice and remains visible. Click the X to quit. Avoid launching multiple instances, since only one can own the shortcut.
 
-## Version 0.1 behavior and limitations
+## Behavior and limitations
 
 - Points and accents use dotted-circle previews, including holam and shin/sin dots. The preview circle is never inserted. Maqaf, sof pasuq and paseq are displayed and inserted as standalone punctuation characters.
 - This is insertion-only: it does not inspect document contents, replace existing vowels, normalize existing text, or automatically advance to the next consonant. Selecting text may cause the editor to replace that selection.
