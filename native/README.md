@@ -43,8 +43,10 @@ test builds. This workflow does not publish releases or upload to an app store.
 
 The Windows job also builds an explicitly **unsigned test installer**, verifies
 install/reinstall/uninstall on the disposable runner, and uploads it separately.
-See [installer/README.md](installer/README.md) for installer behavior and the
-publisher credentials still required for signed distribution on Windows and Mac.
+It produces a full-trust x64 MSIX for local testing and tests installation and
+removal with a temporary certificate on the hosted runner.
+See [installer/README.md](installer/README.md) for MSIX packaging and Store
+submission, the standalone installer, and signing options.
 
 For distribution beyond testing, Developer ID signing and notarization can be
 added later using repository secrets. Do not commit certificates or credentials.

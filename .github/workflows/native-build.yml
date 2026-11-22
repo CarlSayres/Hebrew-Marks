@@ -97,6 +97,22 @@ jobs:
           path: installer-output/*
           if-no-files-found: error
           retention-days: 30
+      - name: Build Windows x64 full-trust MSIX
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./native/installer/build-windows-msix.ps1 -SourceDir package -OutputDir msix-output
+      - name: Save the Windows MSIX for local testing
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: HebrewMarks-Windows-x64-MSIX-local-test
+          path: msix-output/*
+          if-no-files-found: error
+          retention-days: 30
+      - name: Test MSIX installation and removal
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: ./native/installer/test-windows-msix.ps1 -SourceDir package
       - name: Package Mac test app
         if: runner.os == 'macOS'
         shell: bash
