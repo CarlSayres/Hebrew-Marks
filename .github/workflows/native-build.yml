@@ -109,10 +109,6 @@ jobs:
           path: msix-output/*
           if-no-files-found: error
           retention-days: 30
-      - name: Test MSIX installation and removal
-        if: runner.os == 'Windows'
-        shell: powershell
-        run: ./native/installer/test-windows-msix.ps1 -SourceDir package
       - name: Package Mac test app
         if: runner.os == 'macOS'
         shell: bash
@@ -149,3 +145,7 @@ jobs:
           path: ${{ runner.temp }}/hebrew-previews/*.png
           if-no-files-found: ignore
           retention-days: 30
+      - name: Test MSIX installation and removal
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: ./native/installer/test-windows-msix.ps1 -SourceDir package

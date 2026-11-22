@@ -20,6 +20,39 @@ $sdk = Get-ChildItem -LiteralPath $sdkBin -Directory |
     Select-Object -First 1
 if (-not $sdk) { throw 'Could not find the Windows SDK signing and packaging tools.' }
 
+# Launch by package identity, as the Start menu does.
+Add-Type -TypeDefinition @'
+using System;
+using System.Runtime.InteropServices;
+
+public static class MsixTestActivation
+{
+    [ComImport, Guid("45BA127D-10A8-46EA-8AB7-56EA9078943C")]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    private interface IApplicationActivationManager
+    {
+        [PreserveSig]
+        int ActivateApplication(
+            [MarshalAs(UnmanagedType.LPWStr)] string appId,
+            [MarshalAs(UnmanagedType.LPWStr)] string arguments,
+            uint options, out uint processId);
+    }
+
+    public static uint Launch(string appId, string arguments)
+    {
+        var clsid = new Guid("2E941141-7F97-4756-BA1D-9DECDE894A3D");
+        var manager = (IApplicationActivationManager)Activator.CreateInstance(Type.GetTypeFromCLSID(clsid));
+        try
+        {
+            uint processId;
+            Marshal.ThrowExceptionForHR(manager.ActivateApplication(appId, arguments, 0, out processId));
+            return processId;
+        }
+        finally { Marshal.ReleaseComObject(manager); }
+    }
+}
+'@
+
 $package = & (Join-Path $PSScriptRoot 'build-windows-msix.ps1') -SourceDir $SourceDir -OutputDir $testDir `
     -MakeAppxPath (Join-Path $sdk 'makeappx.exe') -PackageName $packageName -Publisher $publisher -PublisherDisplayName 'Hebrew Marks CI'
 
@@ -44,12 +77,13 @@ try {
     }
 
     $previews = Join-Path $testDir 'previews'
-    $app = Start-Process -FilePath $expectedExe -ArgumentList "--render `"$previews`"" -WindowStyle Hidden -PassThru -Wait
-    if ($app.ExitCode -ne 0) { throw 'The installed application could not render its palettes.' }
+    $appProcessId = [MsixTestActivation]::Launch("$($installed.PackageFamilyName)!HebrewMarks", "--render `"$previews`"")
+    $app = Get-Process -Id $appProcessId -ErrorAction SilentlyContinue
+    if ($app -and -not $app.WaitForExit(20000)) { throw 'Timed out waiting for the installed app to render.' }
     foreach ($name in @('niqqud.png', 'teamim.png')) {
         if ((Get-Item -LiteralPath (Join-Path $previews $name)).Length -lt 100) { throw "Missing preview: $name" }
     }
-    Write-Host 'PASS MSIX installation, executable integrity and rendering'
+    Write-Host 'PASS MSIX installation, executable integrity, activation and rendering'
 } finally {
     try {
         Get-AppxPackage -Name $packageName | ForEach-Object { Remove-AppxPackage -Package $_.PackageFullName }
