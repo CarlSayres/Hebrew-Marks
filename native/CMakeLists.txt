@@ -29,6 +29,10 @@ juce_add_gui_app(HebrewMarks
     PLIST_TO_MERGE "<plist><dict><key>LSUIElement</key><true/><key>NSHighResolutionCapable</key><true/></dict></plist>")
 target_sources(HebrewMarks PRIVATE Source/Main.cpp Source/Palette.cpp Source/Catalog.cpp)
 if(WIN32)
+    # Regenerate JUCE's Windows version resource when the product metadata changes.
+    get_target_property(juce_sources HebrewMarks JUCE_GENERATED_SOURCES_DIRECTORY)
+    get_target_property(juce_info HebrewMarks JUCE_INFO_FILE)
+    add_custom_command(OUTPUT "${juce_sources}/HebrewMarks_resources.rc" APPEND DEPENDS "${juce_info}")
     target_sources(HebrewMarks PRIVATE Source/PlatformWindows.cpp)
     target_compile_options(HebrewMarks PRIVATE /utf-8)
     target_link_libraries(HebrewMarks PRIVATE comctl32)

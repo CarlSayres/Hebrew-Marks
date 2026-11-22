@@ -5,6 +5,7 @@
     <AssemblyName>Hebrew Marks</AssemblyName>
     <Product>Hebrew Marks</Product>
     <Version>1.0</Version>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
     <RootNamespace>HebrewVowelKeyboard</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
