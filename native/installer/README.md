@@ -7,24 +7,38 @@ desktop app. Its manifest declares `Windows.FullTrustApplication` and
 `runFullTrust`. The packaged app targets Windows 10 version 1809 and later.
 It runs as a standard user and needs no separate runtime.
 
-Use the Windows SDK and the prepared native package directory to build a Windows
-11 test package with an isolated unsigned identity:
+Use the Windows SDK and the prepared native package directory to build a
+signed local test package:
 
 ```powershell
 ./native/installer/build-windows-msix.ps1 -SourceDir artifacts/NativeHebrewMarks -OutputDir artifacts/windows-msix
 ```
 
-To install that test package, use an elevated PowerShell on Windows 11:
+The build produces a `*-signed-local-test.msix` and matching public `.cer`.
+It signs with a 30-day test certificate and deletes the signing key. To install
+your locally built package, run this from the repository root in PowerShell as
+administrator:
 
 ```powershell
-Add-AppxPackage -Path ./artifacts/windows-msix/HebrewMarks-0.2.1-x64-local-test.msix -AllowUnsigned
+$testPackage = './artifacts/windows-msix/HebrewMarks-0.2.1-x64-signed-local-test'
+Import-Certificate -FilePath "$testPackage.cer" -CertStoreLocation 'Cert:\LocalMachine\TrustedPeople'
+Add-AppxPackage -Path "$testPackage.msix"
 ```
 
 Launch **Hebrew Marks** from Start. Close any other copy first, since the
 app uses a global shortcut and a single instance. Test inserting marks in Word
 and Google Docs, switching input languages, and toggling the palette. To remove
 the test package, run `Get-AppxPackage -Name HebrewMarks.LocalTest | Remove-AppxPackage`
-from the account that installed it.
+from the account that installed it. In administrator PowerShell, remove its
+public certificate from Trusted People after testing:
+
+```powershell
+$testCert = [Security.Cryptography.X509Certificates.X509Certificate2]::new((Resolve-Path "$testPackage.cer").Path)
+Remove-Item -LiteralPath "Cert:\LocalMachine\TrustedPeople\$($testCert.Thumbprint)"
+```
+
+Retire the earlier unsigned `*-local-test.msix` artifact. Windows rejects
+executable activation in that package with `0x80073D2B`.
 
 For Store submission, reserve the app in Partner Center. Use its exact
 **Package/Identity/Name**, **Package/Identity/Publisher**, and
@@ -40,7 +54,7 @@ click the palette to insert individual Hebrew marks into the focused editor and
 give instructions to test with the Hebrew keyboard selected.
 
 - [Build MSIX package components](https://learn.microsoft.com/en-us/windows/msix/desktop/desktop-to-uwp-manual-conversion)
-- [Install an unsigned MSIX for testing](https://learn.microsoft.com/en-us/windows/msix/package/unsigned-package)
+- [Test a self-signed MSIX](https://learn.microsoft.com/en-us/windows/msix/package/sign-msix-package-guide#testing-distribute-to-testers-with-a-self-signed-certificate)
 - [Store MSIX package and signing requirements](https://learn.microsoft.com/en-us/windows/apps/publish/publish-your-app/package-version-numbering)
 
 ## Standalone Inno Setup installer

@@ -36,27 +36,33 @@ if ($version -notmatch '^(\d+\.\d+\.\d+)(?:\.\d+)?$') { throw "Invalid applicati
 $version = $Matches[1]
 [xml]$manifest = Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot 'AppxManifest.xml')
 $manifest.Package.Identity.Version = "$version.0"
+$localTest = $PSCmdlet.ParameterSetName -eq 'LocalTest'
 
-if ($PSCmdlet.ParameterSetName -eq 'Publisher') {
+if ($localTest) {
+    $signTool = Join-Path (Split-Path -Parent (Resolve-Path -LiteralPath $MakeAppxPath).Path) 'signtool.exe'
+    if (-not (Test-Path -LiteralPath $signTool -PathType Leaf)) {
+        throw 'SignTool.exe is required beside MakeAppx.exe to sign a local test package.'
+    }
+    $suffix = 'signed-local-test'
+} else {
     if ($Publisher -match '2\.25\.311729368913984317654407730594956997722') {
-        throw 'The unsigned test publisher marker is reserved for local test builds.'
+        throw 'Use the exact assigned publisher without the unsigned test marker.'
     }
     $manifest.Package.Identity.Name = $PackageName
     $manifest.Package.Identity.Publisher = $Publisher
     $manifest.Package.Properties.PublisherDisplayName = $PublisherDisplayName
     $suffix = 'unsigned'
-} else {
-    # Windows 11 uses this OID to isolate unsigned installs from signed packages.
-    $manifest.Package.Identity.Publisher += ', OID.2.25.311729368913984317654407730594956997722=1'
-    $suffix = 'local-test'
 }
 
 New-Item -ItemType Directory -Force -Path $OutputDir | Out-Null
 $outputPath = (Resolve-Path -LiteralPath $OutputDir).Path
 $package = Join-Path $outputPath "HebrewMarks-$version-x64-$suffix.msix"
 $stage = Join-Path $outputPath ("msix-stage-" + [guid]::NewGuid().ToString('N'))
+$candidate = "$stage.msix"
+$publicCert = "$stage.cer"
 New-Item -ItemType Directory -Path $stage | Out-Null
 
+$cert = $null
 try {
     foreach ($file in $files) { Copy-Item -LiteralPath (Join-Path $sourcePath $file) -Destination $stage }
     $manifest.Save((Join-Path $stage 'AppxManifest.xml'))
@@ -94,15 +100,28 @@ try {
         $format.Dispose()
     }
 
-    $packArgs = @('pack', '/d', $stage, '/p', $package, '/o')
+    $packArgs = @('pack', '/d', $stage, '/p', $candidate)
     & $MakeAppxPath @packArgs | Out-Host
-    if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $package -PathType Leaf)) {
+    if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $candidate -PathType Leaf)) {
         throw "MakeAppx packaging failed ($LASTEXITCODE)."
     }
-    $hash = (Get-FileHash -LiteralPath $package -Algorithm SHA256).Hash.ToLowerInvariant()
+    if ($localTest) {
+        $cert = New-SelfSignedCertificate -Type CodeSigningCert -Subject $manifest.Package.Identity.Publisher `
+            -CertStoreLocation 'Cert:\CurrentUser\My' -KeyExportPolicy NonExportable -NotAfter (Get-Date).AddDays(30)
+        & $signTool sign /s My /sha1 $cert.Thumbprint /fd SHA256 $candidate | Out-Host
+        if ($LASTEXITCODE -ne 0) { throw "Signing the local test package failed ($LASTEXITCODE)." }
+        Export-Certificate -Cert $cert -FilePath $publicCert | Out-Null
+    }
+    $hash = (Get-FileHash -LiteralPath $candidate -Algorithm SHA256).Hash.ToLowerInvariant()
+    Move-Item -LiteralPath $candidate -Destination $package -Force
+    if ($localTest) { Move-Item -LiteralPath $publicCert -Destination ([IO.Path]::ChangeExtension($package, '.cer')) -Force }
     "$hash  $([IO.Path]::GetFileName($package))" | Set-Content -LiteralPath "$package.sha256.txt" -Encoding utf8
     Write-Output $package
 } finally {
+    if ($cert) { Remove-Item -LiteralPath "Cert:\CurrentUser\My\$($cert.Thumbprint)" -DeleteKey }
+    foreach ($file in @($candidate, $publicCert)) {
+        if (Test-Path -LiteralPath $file) { Remove-Item -LiteralPath $file }
+    }
     $resolvedStage = (Resolve-Path -LiteralPath $stage).Path
     if ((Split-Path -Parent $resolvedStage) -eq $outputPath -and (Split-Path -Leaf $resolvedStage) -match '^msix-stage-[a-f0-9]{32}$') {
         Remove-Item -LiteralPath $resolvedStage -Recurse -Force

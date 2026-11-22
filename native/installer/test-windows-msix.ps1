@@ -7,18 +7,9 @@ if ($env:GITHUB_ACTIONS -ne 'true' -or $env:RUNNER_ENVIRONMENT -ne 'github-hoste
     throw 'The MSIX installation test is intended for disposable GitHub-hosted runners.'
 }
 
-$testId = [guid]::NewGuid().ToString('N')
-$packageName = "HebrewMarks.CI.$testId"
-$publisher = "CN=$packageName"
-$testDir = Join-Path $env:RUNNER_TEMP $packageName
-$sdkBin = Join-Path ${env:ProgramFiles(x86)} 'Windows Kits\10\bin'
-$sdk = Get-ChildItem -LiteralPath $sdkBin -Directory |
-    Where-Object { $_.Name -match '^10\.0\.\d+\.\d+$' } |
-    Sort-Object { [version]$_.Name } -Descending |
-    ForEach-Object { Join-Path $_.FullName 'x64' } |
-    Where-Object { (Test-Path (Join-Path $_ 'makeappx.exe')) -and (Test-Path (Join-Path $_ 'signtool.exe')) } |
-    Select-Object -First 1
-if (-not $sdk) { throw 'Could not find the Windows SDK signing and packaging tools.' }
+$packageName = 'HebrewMarks.LocalTest'
+if (Get-AppxPackage -Name $packageName) { throw 'The local MSIX test package is already installed.' }
+$testDir = Join-Path $env:RUNNER_TEMP ("msix-test-" + [guid]::NewGuid().ToString('N'))
 
 # Launch by package identity, as the Start menu does.
 Add-Type -TypeDefinition @'
@@ -53,20 +44,14 @@ public static class MsixTestActivation
 }
 '@
 
-$package = & (Join-Path $PSScriptRoot 'build-windows-msix.ps1') -SourceDir $SourceDir -OutputDir $testDir `
-    -MakeAppxPath (Join-Path $sdk 'makeappx.exe') -PackageName $packageName -Publisher $publisher -PublisherDisplayName 'Hebrew Marks CI'
+$package = & (Join-Path $PSScriptRoot 'build-windows-msix.ps1') -SourceDir $SourceDir -OutputDir $testDir
+$publicCert = [IO.Path]::ChangeExtension($package, '.cer')
+$cert = [Security.Cryptography.X509Certificates.X509Certificate2]::new($publicCert)
 
-$cert = $null
 $app = $null
 try {
-    # Trust only this job's short-lived certificate, and sign only the private test copy.
-    $cert = New-SelfSignedCertificate -Type CodeSigningCert -Subject $publisher `
-        -CertStoreLocation 'Cert:\CurrentUser\My' -NotAfter (Get-Date).AddDays(1)
-    $publicCert = Join-Path $testDir 'test.cer'
-    Export-Certificate -Cert $cert -FilePath $publicCert | Out-Null
+    # Trust only this job's short-lived public certificate on the disposable runner.
     Import-Certificate -FilePath $publicCert -CertStoreLocation 'Cert:\LocalMachine\TrustedPeople' | Out-Null
-    & (Join-Path $sdk 'signtool.exe') sign /s My /sha1 $cert.Thumbprint /fd SHA256 $package
-    if ($LASTEXITCODE -ne 0) { throw 'Signing the MSIX test copy failed.' }
 
     Add-AppxPackage -Path $package
     $installed = Get-AppxPackage -Name $packageName
@@ -98,10 +83,8 @@ try {
         try {
             Get-AppxPackage -Name $packageName | ForEach-Object { Remove-AppxPackage -Package $_.PackageFullName }
         } finally {
-            if ($cert) {
-                Remove-Item -LiteralPath "Cert:\LocalMachine\TrustedPeople\$($cert.Thumbprint)" -ErrorAction SilentlyContinue
-                Remove-Item -LiteralPath "Cert:\CurrentUser\My\$($cert.Thumbprint)" -DeleteKey
-            }
+            Remove-Item -LiteralPath "Cert:\LocalMachine\TrustedPeople\$($cert.Thumbprint)" -ErrorAction SilentlyContinue
+            $cert.Dispose()
         }
     }
 }
