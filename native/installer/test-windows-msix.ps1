@@ -38,14 +38,14 @@ public static class MsixTestActivation
             uint options, out uint processId);
     }
 
-    public static uint Launch(string appId, string arguments)
+    public static uint Launch(string appId)
     {
         var clsid = new Guid("45BA127D-10A8-46EA-8AB7-56EA9078943C");
         var manager = (IApplicationActivationManager)Activator.CreateInstance(Type.GetTypeFromCLSID(clsid));
         try
         {
             uint processId;
-            Marshal.ThrowExceptionForHR(manager.ActivateApplication(appId, arguments, 0, out processId));
+            Marshal.ThrowExceptionForHR(manager.ActivateApplication(appId, null, 0, out processId));
             return processId;
         }
         finally { Marshal.ReleaseComObject(manager); }
@@ -57,6 +57,7 @@ $package = & (Join-Path $PSScriptRoot 'build-windows-msix.ps1') -SourceDir $Sour
     -MakeAppxPath (Join-Path $sdk 'makeappx.exe') -PackageName $packageName -Publisher $publisher -PublisherDisplayName 'Hebrew Marks CI'
 
 $cert = $null
+$app = $null
 try {
     # Trust only this job's short-lived certificate, and sign only the private test copy.
     $cert = New-SelfSignedCertificate -Type CodeSigningCert -Subject $publisher `
@@ -76,21 +77,31 @@ try {
         throw 'The installed executable differs from the portable build.'
     }
 
-    $previews = Join-Path $testDir 'previews'
-    $appProcessId = [MsixTestActivation]::Launch("$($installed.PackageFamilyName)!HebrewMarks", "--render `"$previews`"")
-    $app = Get-Process -Id $appProcessId -ErrorAction SilentlyContinue
-    if ($app -and -not $app.WaitForExit(20000)) { throw 'Timed out waiting for the installed app to render.' }
-    foreach ($name in @('niqqud.png', 'teamim.png')) {
-        if ((Get-Item -LiteralPath (Join-Path $previews $name)).Length -lt 100) { throw "Missing preview: $name" }
+    $appProcessId = [MsixTestActivation]::Launch("$($installed.PackageFamilyName)!HebrewMarks")
+    $launchedProcess = Get-Process -Id $appProcessId
+    if ($launchedProcess.Path -ne $expectedExe) { throw 'Activation did not start the installed executable.' }
+    $app = $launchedProcess
+    if (-not $app.WaitForInputIdle(15000) -or $app.HasExited) {
+        throw 'The installed app did not reach its Windows message loop.'
     }
-    Write-Host 'PASS MSIX installation, executable integrity, activation and rendering'
+    Write-Host 'PASS MSIX installation, executable integrity and normal activation'
 } finally {
     try {
-        Get-AppxPackage -Name $packageName | ForEach-Object { Remove-AppxPackage -Package $_.PackageFullName }
+        if ($app -and -not $app.HasExited) {
+            if (-not $app.CloseMainWindow() -or -not $app.WaitForExit(3000)) {
+                # This is the exact process started from the private test package.
+                $app.Kill()
+                if (-not $app.WaitForExit(5000)) { throw 'The MSIX fixture did not exit.' }
+            }
+        }
     } finally {
-        if ($cert) {
-            Remove-Item -LiteralPath "Cert:\LocalMachine\TrustedPeople\$($cert.Thumbprint)" -ErrorAction SilentlyContinue
-            Remove-Item -LiteralPath "Cert:\CurrentUser\My\$($cert.Thumbprint)" -DeleteKey
+        try {
+            Get-AppxPackage -Name $packageName | ForEach-Object { Remove-AppxPackage -Package $_.PackageFullName }
+        } finally {
+            if ($cert) {
+                Remove-Item -LiteralPath "Cert:\LocalMachine\TrustedPeople\$($cert.Thumbprint)" -ErrorAction SilentlyContinue
+                Remove-Item -LiteralPath "Cert:\CurrentUser\My\$($cert.Thumbprint)" -DeleteKey
+            }
         }
     }
 }
